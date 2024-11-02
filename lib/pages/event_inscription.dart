@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'payment_page.dart';
+import 'dart:convert';
 
 class EventRegistrationPage extends StatefulWidget {
   final String eventName;
+  final int eventId;
 
-  const EventRegistrationPage({super.key, required this.eventName});
+  const EventRegistrationPage({super.key, required this.eventName, required this.eventId});
 
   @override
   _EventRegistrationPageState createState() => _EventRegistrationPageState();
@@ -21,18 +23,62 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
   double _totalCost = 0.0;
   double _additionalServiceCost = 0.0;
 
-  final Map<String, double> _ticketPrices = {
-    'General': 50.0,
-    'VIP': 100.0,
-    'Premium': 150.0,
-  };
-
+  Map<String, double> _ticketPrices = {};
   final Map<String, double> _additionalServicePrices = {
     'Ninguno': 0.0,
     'Comida y bebida': 20.0,
     'Estacionamiento': 10.0,
     'Transporte': 15.0,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEventDetails();
+  }
+
+  void _fetchEventDetails() {
+    // Simulate fetching event details from a server
+    final eventData = jsonDecode('''
+    [
+      {
+        "id": 1,
+        "name": "Concierto Marc Anthony",
+        "description": "Concierto de tus artista favorito",
+        "photo": "https://portal.andina.pe/EDPfotografia3/Thumbnail/2023/09/22/000997012W.jpg",
+        "location": "La Molina",
+        "tags": ["Ciencia"],
+        "fechas_eventos": ["2024-11-12T02:41:00", "2024-11-29T02:41:00"],
+        "tickets": [
+          {"name": "General Admission", "color": "Green", "quantity": 200, "price": 15},
+          {"name": "VIP Lab Access", "color": "Red", "quantity": 30, "price": 60}
+        ],
+        "businessId": 1
+      },
+      {
+        "id": 2,
+        "name": "Science Fair",
+        "description": "Explore science exhibits and experiments.",
+        "photo": "https://www.coldelvalle.edu.mx/wp-content/uploads/2023/09/10p.Que_es_una_feria_de_ciencias-min.jpg",
+        "location": "Science Center",
+        "tags": ["Ciencia"],
+        "fechas_eventos": ["2024-11-15T14:29:00", "2024-11-27T14:29:00"],
+        "tickets": [
+          {"name": "General Admission", "color": "Green", "quantity": 200, "price": 15},
+          {"name": "VIP Lab Access", "color": "Red", "quantity": 30, "price": 60}
+        ],
+        "businessId": 1
+      }
+    ]
+    ''');
+
+    final event = eventData.firstWhere((event) => event['id'] == widget.eventId);
+    setState(() {
+      _ticketPrices = {
+        for (var ticket in event['tickets']) ticket['name']: ticket['price'].toDouble()
+      };
+    });
+  }
 
   void _updateTotalCost() {
     setState(() {
@@ -62,7 +108,6 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-
               _buildDropdownField(
                 label: 'Tipo de entrada',
                 items: _ticketPrices.keys.map((type) => DropdownMenuItem<String>(
@@ -75,10 +120,7 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
                   _updateTotalCost();
                 },
               ),
-
               const SizedBox(height: 20),
-
-
               _buildDropdownField(
                 label: 'Cantidad de entradas',
                 items: [1, 2, 3, 4, 5].map((quantity) => DropdownMenuItem<int>(
@@ -91,10 +133,7 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
                   _updateTotalCost();
                 },
               ),
-
               const SizedBox(height: 20),
-
-
               _buildTextField(
                 label: 'Número de teléfono',
                 onChanged: (value) {
@@ -108,10 +147,7 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
                 },
                 keyboardType: TextInputType.phone,
               ),
-
               const SizedBox(height: 20),
-
-
               _buildTextField(
                 label: 'DNI',
                 onChanged: (value) {
@@ -125,10 +161,7 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
                 },
                 keyboardType: TextInputType.number,
               ),
-
               const SizedBox(height: 20),
-
-
               _buildDropdownField(
                 label: 'Servicios adicionales',
                 items: _additionalServicePrices.keys.map((service) => DropdownMenuItem<String>(
@@ -141,18 +174,12 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
                   _updateTotalCost();
                 },
               ),
-
               const SizedBox(height: 30),
-
-
               Text(
                 'Costo total: \$$_totalCost',
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
-
               const SizedBox(height: 30),
-
-
               Center(
                 child: ElevatedButton(
                   onPressed: () {
@@ -205,7 +232,6 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
     );
   }
 
-
   Widget _buildTextField({
     required String label,
     required void Function(String) onChanged,
@@ -231,7 +257,6 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
       validator: validator,
     );
   }
-
 
   Widget _buildDropdownField<T>({
     required String label,

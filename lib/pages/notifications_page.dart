@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 class NotificationsPage extends StatelessWidget {
-  const NotificationsPage({super.key});
+  final String userId;
+  final String userRole;
+
+  const NotificationsPage({super.key, required this.userId,required this.userRole});
 
   @override
   Widget build(BuildContext context) {

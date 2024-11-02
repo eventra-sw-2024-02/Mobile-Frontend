@@ -4,7 +4,9 @@ import '../widgets/custom_bottom_navigation_bar.dart';
 import '../widgets/custom_app_bar.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  final String userId;
+  final String userRole;
+  const SearchPage({super.key, required this.userId, required this.userRole});
 
   @override
   _SearchPageState createState() => _SearchPageState();
@@ -25,7 +27,6 @@ class _SearchPageState extends State<SearchPage> {
     setState(() {
       _selectedIndex = index;
     });
-
   }
 
   @override
@@ -33,6 +34,8 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Buscar',
+        userRole: widget.userRole,
+        userId: widget.userId,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -98,6 +101,8 @@ class _SearchPageState extends State<SearchPage> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        userId: widget.userId,
+        userRole: widget.userRole,
       ),
     );
   }

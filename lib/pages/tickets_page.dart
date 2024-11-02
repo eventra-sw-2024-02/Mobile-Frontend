@@ -4,7 +4,9 @@ import '../widgets/custom_app_bar.dart';
 import 'tickets_detail_page.dart';
 
 class TicketsPage extends StatefulWidget {
-  const TicketsPage({super.key});
+  final String userId;
+  final String userRole;
+  const TicketsPage({super.key, required this.userId, required this.userRole});
 
   @override
   _TicketsPageState createState() => _TicketsPageState();
@@ -26,6 +28,8 @@ class _TicketsPageState extends State<TicketsPage> {
       child: Scaffold(
         appBar: CustomAppBar(
           title: 'Eventra',
+          userRole: widget.userRole,
+          userId: widget.userId,
           bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.grey,
@@ -117,6 +121,8 @@ class _TicketsPageState extends State<TicketsPage> {
         bottomNavigationBar: CustomBottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
+          userId: widget.userId,
+          userRole: widget.userRole,
         ),
       ),
     );
@@ -181,6 +187,7 @@ class _TicketsPageState extends State<TicketsPage> {
                   time: time,
                   image: image,
                   description: description,
+                  userId: widget.userId,
                 ),
               ),
             );

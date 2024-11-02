@@ -1,18 +1,17 @@
-import 'package:eventra_app/pages/reservation_page.dart';
-import 'package:eventra_app/pages/search_page.dart';
-import 'package:eventra_app/pages/tickets_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
-
 import '../services/api_service.dart';
-import '../models/event_request.dart';
-import '../models/category_event_response.dart';
 
 class AddEventPage extends StatefulWidget {
-  const AddEventPage({super.key});
+  final String userId;
+  final String userRole;
+
+  const AddEventPage({super.key, required this.userId, required this.userRole});
 
   @override
   _AddEventPageState createState() => _AddEventPageState();
@@ -29,105 +28,15 @@ class _AddEventPageState extends State<AddEventPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   int _selectedIndex = 2;
-  List<CategoryEventResponse> _categories = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchCategories();
-  }
-
-  void _fetchCategories() async {
-    try {
-      List<CategoryEventResponse> categories = await ApiService().fetchCategories();
-      setState(() {
-        _categories = categories;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load categories')),
-      );
-    }
-  }
+  List<String> _categories = ["Ciencia", "Feria", "Exposición", "Educación"]; // Example categories
+  final ApiService _apiService = ApiService();
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const SearchPage()),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AddEventPage()),
-      );
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ReservationPage()),
-      );
-    } else if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const TicketsPage()),
-      );
-    } else if (index == 5) {
-      _showBottomSheet();
-    }
-  }
-
-  void _showBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.account_circle, color: Colors.black87),
-                title: const Text('Cambiar cuenta'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.help, color: Colors.black87),
-                title: const Text('Ayuda'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.description, color: Colors.black87),
-                title: const Text('Términos y condiciones'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.exit_to_app, color: Colors.red),
-                title: const Text('Cerrar sesión'),
-                onTap: () {},
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    // Navigation to other pages if necessary
   }
 
   void _pickStartDate() async {
@@ -194,34 +103,50 @@ class _AddEventPageState extends State<AddEventPage> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       if (_startDate == null || _endDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Por favor, selecciona las fechas de inicio y fin.')),
+          SnackBar(content: Text('Please select start and end dates.')),
         );
         return;
       }
 
-      final eventRequest = EventRequest(
-        title: _titleController.text,
-        description: _descriptionController.text,
-        startDate: dateFormat.format(_startDate!),  // Now using the correct format
-        endDate: dateFormat.format(_endDate!),
-        location: _locationController.text,
-        organizerId: 1, // Change to the real organizerId
-        categoryId: _categories.firstWhere((category) => category.name == _selectedCategory).id,
-        url: _urlController.text,
-      );
+      final eventData = {
+        "name": _titleController.text,
+        "description": _descriptionController.text,
+        "photo": _urlController.text,
+        "location": _locationController.text,
+        "tags": _selectedCategory != null ? [_selectedCategory!] : [],
+        "fechas_eventos": [
+          dateFormat.format(_startDate!),
+          dateFormat.format(_endDate!)
+        ],
+        "tickets": [
+          { "name": "General Admission", "color": "Green", "quantity": 200, "price": 15.00 },
+          { "name": "VIP Lab Access", "color": "Red", "quantity": 30, "price": 60.00 }
+        ],
+        "businessId": int.parse(widget.userId)
+      };
 
-      ApiService().createEvent(eventRequest);
+      final response = await _apiService.createActivity(eventData);
+
+      if (response['statusCode'] == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Event created successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create event.')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: 'Eventra'),
+      appBar: CustomAppBar(title: 'Eventra', userId: widget.userId, userRole: widget.userRole),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -233,7 +158,7 @@ class _AddEventPageState extends State<AddEventPage> {
                 Center(
                   child: GestureDetector(
                     onTap: () {
-                      // Acción para cargar una imagen
+                      // Action to upload an image
                     },
                     child: Container(
                       height: 200,
@@ -265,7 +190,7 @@ class _AddEventPageState extends State<AddEventPage> {
                 TextField(
                   controller: _titleController,
                   decoration: InputDecoration(
-                    labelText: 'Nombre de evento',
+                    labelText: 'Event Name',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -275,10 +200,10 @@ class _AddEventPageState extends State<AddEventPage> {
                     labelText: 'Category',
                     border: OutlineInputBorder(),
                   ),
-                  items: _categories.map((CategoryEventResponse category) {
+                  items: _categories.map((category) {
                     return DropdownMenuItem<String>(
-                      value: category.name,
-                      child: Text(category.name),
+                      value: category,
+                      child: Text(category),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -295,8 +220,8 @@ class _AddEventPageState extends State<AddEventPage> {
                         onPressed: _pickStartDate,
                         child: Text(
                           _startDate == null
-                              ? 'Seleccionar Fecha de Inicio'
-                              : 'Fecha de Inicio: ${DateFormat('yyyy-MM-dd').format(_startDate!)}',
+                              ? 'Select Start Date'
+                              : 'Start Date: ${DateFormat('yyyy-MM-dd').format(_startDate!)}',
                         ),
                       ),
                     ),
@@ -306,8 +231,8 @@ class _AddEventPageState extends State<AddEventPage> {
                         onPressed: _pickStartTime,
                         child: Text(
                           _startDate == null
-                              ? 'Seleccionar Hora de Inicio'
-                              : 'Hora de Inicio: ${DateFormat('HH:mm').format(_startDate!)}',
+                              ? 'Select Start Time'
+                              : 'Start Time: ${DateFormat('HH:mm').format(_startDate!)}',
                         ),
                       ),
                     ),
@@ -321,8 +246,8 @@ class _AddEventPageState extends State<AddEventPage> {
                         onPressed: _pickEndDate,
                         child: Text(
                           _endDate == null
-                              ? 'Seleccionar Fecha de Fin'
-                              : 'Fecha de Fin: ${DateFormat('yyyy-MM-dd').format(_endDate!)}',
+                              ? 'Select End Date'
+                              : 'End Date: ${DateFormat('yyyy-MM-dd').format(_endDate!)}',
                         ),
                       ),
                     ),
@@ -332,8 +257,8 @@ class _AddEventPageState extends State<AddEventPage> {
                         onPressed: _pickEndTime,
                         child: Text(
                           _endDate == null
-                              ? 'Seleccionar Hora de Fin'
-                              : 'Hora de Fin: ${DateFormat('HH:mm').format(_endDate!)}',
+                              ? 'Select End Time'
+                              : 'End Time: ${DateFormat('HH:mm').format(_endDate!)}',
                         ),
                       ),
                     ),
@@ -343,7 +268,7 @@ class _AddEventPageState extends State<AddEventPage> {
                 TextField(
                   controller: _locationController,
                   decoration: InputDecoration(
-                    labelText: 'Ubicación',
+                    labelText: 'Location',
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.location_on),
                   ),
@@ -353,7 +278,7 @@ class _AddEventPageState extends State<AddEventPage> {
                   controller: _descriptionController,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    labelText: 'Descripción',
+                    labelText: 'Description',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -368,7 +293,7 @@ class _AddEventPageState extends State<AddEventPage> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _submitForm,
-                  child: Text('Crear Evento'),
+                  child: Text('Create Event'),
                 ),
               ],
             ),
@@ -378,6 +303,8 @@ class _AddEventPageState extends State<AddEventPage> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        userId: widget.userId,
+        userRole: widget.userRole,
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-// import 'package:http/http.dart' as http;
-// import 'dart:convert';
+import 'package:eventra_app/services/api_service.dart';
 import 'home_page.dart';
+import 'my_events_page.dart';
 import 'sign_up.dart';
 
 class LoginPage extends StatefulWidget {
@@ -16,49 +16,36 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Future<void> _login() async {
-  //   final response = await http.post(
-  //     Uri.parse('http://10.0.2.2:8080/api/auth/login'), // Actualiza con la IP y puerto correctos
-  //     headers: <String, String>{
-  //       'Content-Type': 'application/json; charset=UTF-8',
-  //     },
-  //     body: jsonEncode(<String, String>{
-  //       'email': _emailController.text,
-  //       'password': _passwordController.text,
-  //     }),
-  //   );
+  Future<void> _login() async {
+    final apiService = ApiService();
+    final response = await apiService.loginUser(
+      _emailController.text,
+      _passwordController.text,
+    );
 
-  //   if (response.statusCode == 200) {
-  //     // Redirección si el login es exitoso
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(builder: (context) => const HomePage()),
-  //     );
-  //   } else {
-  //     // Manejo del error en el login
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Login failed')),
-  //     );
-  //   }
-  // }
+    // Print the full response for debugging
+    print('Full Response: $response');
 
-  // Función de login estática sin backend
-  void _login() {
-    // Ejemplo de credenciales estáticas para la prueba de login
-    const String staticEmail = 'admin';
-    const String staticPassword = '123';
+    if (response['statusCode'] == 200) {
+      final user = response['body'];
+      print('User email: ${user['email']}');
+      print('User ID: ${user['id']}');
+      print('User Role: ${user['role']}');
 
-    if (_emailController.text == staticEmail &&
-        _passwordController.text == staticPassword) {
-      // Simulación de login exitoso
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
+      if (user['role'] == 'CLIENT') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage(userId: user['id'].toString(), userRole: user['role'])),
+        );
+      } else if (user['role'] == 'BUSINESS') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MyEventsPage(userId: user['id'].toString(), userRole: user['role'])),
+        );
+      }
     } else {
-      // Mensaje si el login falla
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid email or password')),
+        const SnackBar(content: Text('Login failed')),
       );
     }
   }

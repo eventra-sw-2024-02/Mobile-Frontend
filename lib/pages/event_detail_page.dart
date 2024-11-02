@@ -5,8 +5,11 @@ import 'event_inscription.dart';
 class EventDetailPage extends StatefulWidget {
   final String imagePath;
   final String title;
+  final String userId;
+  final String userRole;
+  final int eventId; // Add eventId parameter
 
-  const EventDetailPage({super.key, required this.imagePath, required this.title});
+  const EventDetailPage({super.key, required this.imagePath, required this.title, required this.userId, required this.userRole, required this.eventId});
 
   @override
   _EventDetailPageState createState() => _EventDetailPageState();
@@ -51,7 +54,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.asset(
+                child: Image.network(
                   widget.imagePath,
                   width: double.infinity,
                   height: 220,
@@ -174,7 +177,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EventRegistrationPage(eventName: widget.title),
+                          builder: (context) => EventRegistrationPage(eventName: widget.title, eventId: widget.eventId), // Pass eventId
                         ),
                       );
                     },
@@ -195,6 +198,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        userId: widget.userId,
+        userRole: widget.userRole,
       ),
     );
   }

@@ -6,10 +6,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget> actions;
   final PreferredSizeWidget? bottom;
+  final String userId;
+  final String userRole;
 
   const CustomAppBar({
     Key? key,
     required this.title,
+    required this.userId,
+    required this.userRole,
     this.actions = const [],
     this.bottom,
   }) : super(key: key);
@@ -34,7 +38,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationsPage()),
+                MaterialPageRoute(builder: (context) => NotificationsPage(userId: userId, userRole: userRole)),
               );
             },
           ),
@@ -42,7 +46,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
+                MaterialPageRoute(builder: (context) => ProfilePage(userId: userId, userRole: userRole)),
               );
             },
             child: const CircleAvatar(

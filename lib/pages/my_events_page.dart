@@ -1,51 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:eventra_app/services/api_service.dart'; // Update with your actual path
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:eventra_app/widgets/custom_app_bar.dart';
+import 'package:eventra_app/widgets/custom_bottom_navigation_bar.dart';
 
 class MyEventsPage extends StatefulWidget {
-  const MyEventsPage({super.key});
+  final String userId;
+  final String userRole;
+  const MyEventsPage({super.key, required this.userId, required this.userRole});
 
   @override
   _MyEventsPageState createState() => _MyEventsPageState();
 }
 
 class _MyEventsPageState extends State<MyEventsPage> {
-  // Lista estática de eventos con imágenes
-  final List<Map<String, dynamic>> _events = [
-    {
-      'title': 'Marron 5',
-      'description': 'Concierto imperdible a todo dar',
-      'location': 'Miraflores, Peru',
-      'startDate': DateTime.now().add(Duration(days: 1)),
-      'endDate': DateTime.now().add(Duration(days: 1, hours: 2)),
-      'organizer': {'firstName': 'John', 'lastName': 'Doe'},
-      'categoryEvent': {'name': 'Música'},
-      'imageUrl': 'assets/jazz_festival.png', // Ruta de la imagen en assets
-    },
-    {
-      'title': 'Halloween Party',
-      'description': 'La mejor fiesta de halloween, no te la puedes perder',
-      'location': 'La Molina, Peru',
-      'startDate': DateTime.now().add(Duration(days: 2)),
-      'endDate': DateTime.now().add(Duration(days: 2, hours: 3)),
-      'organizer': {'firstName': 'Jane', 'lastName': 'Doe'},
-      'categoryEvent': {'name': 'Fiesta'},
-      'imageUrl': 'assets/party.png', // Ruta de la imagen en assets
-    },
-  ];
+  List<Map<String, dynamic>> _userActivities = [];
+  bool _isLoading = true;
+  final ApiService _apiService = ApiService();
+  int _currentIndex = 0;
+  String? _selectedActivityType;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserActivities();
+  }
+
+  Future<void> _fetchUserActivities() async {
+    final url = Uri.parse('http://10.0.2.2:8080/api/activities'); // Adjust the endpoint if necessary
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> activities = jsonDecode(response.body);
+      setState(() {
+        _userActivities = activities.map((activity) => activity as Map<String, dynamic>).toList();
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+      // Handle error
+      print('Failed to load activities');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Eventos'),
-        backgroundColor: const Color(0xFFFFA726),
-        elevation: 4,
+      appBar: CustomAppBar(
+        title: 'Mis Actividades',
+        userRole: widget.userRole,
+        userId: widget.userId,
       ),
-      body: ListView.builder(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _userActivities.isEmpty
+          ? const Center(
+        child: Text(
+          'No activities found',
+          style: TextStyle(fontSize: 18, color: Colors.black54),
+        ),
+      )
+          : ListView.builder(
         padding: const EdgeInsets.all(16.0),
-        itemCount: _events.length,
+        itemCount: _userActivities.length,
         itemBuilder: (context, index) {
-          final event = _events[index]; // Usar la lista estática
+          final activity = _userActivities[index];
           return Card(
             elevation: 8,
             shape: RoundedRectangleBorder(
@@ -57,12 +80,22 @@ class _MyEventsPageState extends State<MyEventsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Mostrar imagen del evento desde assets
-                  Image.asset(
-                    event['imageUrl'], // Cargar la imagen desde assets
-                    height: 200, // Ajusta la altura según sea necesario
+                  activity['photo'] != null
+                      ? Image.network(
+                    activity['photo'],
+                    height: 200,
                     width: double.infinity,
-                    fit: BoxFit.cover, // Ajusta la imagen al espacio disponible
+                    fit: BoxFit.cover,
+                  )
+                      : Container(
+                    height: 200,
+                    color: Colors.grey,
+                    child: const Center(
+                      child: Text(
+                        'No Image',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -70,7 +103,7 @@ class _MyEventsPageState extends State<MyEventsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          event['title'],
+                          activity['name'] ?? 'No Title',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -79,36 +112,22 @@ class _MyEventsPageState extends State<MyEventsPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Descripción: ${event['description']}',
+                          'Descripción: ${activity['description'] ?? 'No Description'}',
                           style: const TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Ubicación: ${event['location']}',
+                          'Ubicación: ${activity['location'] ?? 'No Location'}',
                           style: const TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Inicio: ${DateFormat('yyyy-MM-dd – kk:mm').format(event['startDate'])}',
-                              style: const TextStyle(fontSize: 14, color: Colors.black54),
-                            ),
-                            Text(
-                              'Fin: ${DateFormat('yyyy-MM-dd – kk:mm').format(event['endDate'])}',
-                              style: const TextStyle(fontSize: 14, color: Colors.black54),
-                            ),
-                          ],
+                        Text(
+                          'Fecha: ${activity['fechas_eventos'] != null ? DateFormat('yyyy-MM-dd – kk:mm').format(DateTime.parse(activity['fechas_eventos'][0])) : 'No Date'}',
+                          style: const TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Organizador: ${event['organizer']['firstName']} ${event['organizer']['lastName']}',
-                          style: const TextStyle(fontSize: 16, color: Colors.black54),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Categoría: ${event['categoryEvent']['name']}',
+                          'Categoría: ${activity['tags'] != null ? activity['tags'].join(', ') : 'No Tags'}',
                           style: const TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                       ],
@@ -119,6 +138,16 @@ class _MyEventsPageState extends State<MyEventsPage> {
             ),
           );
         },
+      ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        userId: widget.userId,
+        userRole: widget.userRole,
       ),
     );
   }

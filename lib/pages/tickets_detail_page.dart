@@ -6,6 +6,7 @@ class TicketDetailPage extends StatelessWidget {
   final String time;
   final String image;
   final String description;
+  final String userId;
 
   const TicketDetailPage({
     super.key,
@@ -14,6 +15,7 @@ class TicketDetailPage extends StatelessWidget {
     required this.time,
     required this.image,
     required this.description,
+    required this.userId,
   });
 
   @override
@@ -48,7 +50,6 @@ class TicketDetailPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               ClipRRect(
                 borderRadius: BorderRadius.circular(12.0),
                 child: Image.asset(

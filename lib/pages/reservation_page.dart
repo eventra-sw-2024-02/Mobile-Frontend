@@ -3,7 +3,9 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
 
 class ReservationPage extends StatefulWidget {
-  const ReservationPage({super.key});
+  final String userId;
+  final String userRole;
+  const ReservationPage({super.key, required this.userId, required this.userRole});
 
   @override
   _ReservationPageState createState() => _ReservationPageState();
@@ -72,7 +74,7 @@ class _ReservationPageState extends State<ReservationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: 'Mis Reservaciones'),
+      appBar: CustomAppBar(title: 'Mis Reservaciones', userId: widget.userId,userRole: widget.userRole),
       backgroundColor: const Color(0xFFF5F5F5),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0),
@@ -91,6 +93,8 @@ class _ReservationPageState extends State<ReservationPage> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        userId: widget.userId,
+        userRole: widget.userRole,
       ),
     );
   }
