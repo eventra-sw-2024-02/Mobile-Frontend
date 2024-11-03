@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'filter_page.dart';
 import '../widgets/custom_bottom_navigation_bar.dart';
 import '../widgets/custom_app_bar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SearchPage extends StatefulWidget {
   final String userId;
   final String userRole;
-  const SearchPage({super.key, required this.userId, required this.userRole});
+  final String userPhotoUrl;
+
+  const SearchPage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
   @override
   _SearchPageState createState() => _SearchPageState();
@@ -14,14 +18,61 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   int _selectedIndex = 1;
+  List<dynamic> _events = [];
+  List<dynamic> _filteredEvents = [];
+  TextEditingController _searchController = TextEditingController();
 
-  final List<Widget> _pages = [
-    Center(child: Text('Inicio')),
-    Center(child: Text('Página de Búsqueda')),
-    Center(child: Text('Reservas')),
-    Center(child: Text('Entradas')),
-    Center(child: Text('Perfil')),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchEvents();
+    _searchController.addListener(_filterEvents);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterEvents);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchEvents() async {
+    final response = await http.get(Uri.parse('http://10.0.2.2:8080/api/activities'));
+    if (!mounted) return;
+    if (response.statusCode == 200) {
+      setState(() {
+        _events = jsonDecode(response.body);
+        _filteredEvents = _events;
+      });
+    } else {
+      print('Failed to load events');
+    }
+  }
+
+  void _filterEvents() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredEvents = _events.where((event) {
+        final name = event['name']?.toLowerCase() ?? '';
+        return name.contains(query);
+      }).toList();
+    });
+  }
+
+  void _showFilterDialog() async {
+    final filteredEvents = await showDialog<List<dynamic>>(
+      context: context,
+      builder: (BuildContext context) {
+        return FiltersPage(events: _events);
+      },
+    );
+
+    if (filteredEvents != null) {
+      setState(() {
+        _filteredEvents = filteredEvents;
+      });
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -36,6 +87,7 @@ class _SearchPageState extends State<SearchPage> {
         title: 'Buscar',
         userRole: widget.userRole,
         userId: widget.userId,
+        userPhotoUrl: widget.userPhotoUrl,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -46,6 +98,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _searchController,
                     decoration: InputDecoration(
                       labelText: 'Buscar',
                       prefixIcon: Icon(Icons.search),
@@ -60,12 +113,7 @@ class _SearchPageState extends State<SearchPage> {
                 const SizedBox(width: 10),
                 IconButton(
                   icon: Icon(Icons.filter_list, color: Colors.grey),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => FiltersPage()),
-                    );
-                  },
+                  onPressed: _showFilterDialog,
                 ),
               ],
             ),
@@ -93,8 +141,12 @@ class _SearchPageState extends State<SearchPage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFFFA726)),
             ),
             const SizedBox(height: 10),
-            eventCard('Concierto', '10 Noviembre', '6:00 pm', 'assets/concert.png'),
-            eventCard('Obra de teatro', '15 Octubre', '4:00 pm', 'assets/theater.png'),
+            ..._filteredEvents.map((event) => eventCard(
+              event['name'] ?? 'No name',
+              event['fechas_eventos']?.isNotEmpty == true ? event['fechas_eventos'][0].split('T')[0] : 'No date',
+              event['fechas_eventos']?.isNotEmpty == true ? event['fechas_eventos'][0].split('T')[1] : 'No time',
+              event['photo'] ?? 'https://via.placeholder.com/150',
+            )).toList(),
           ],
         ),
       ),
@@ -103,6 +155,7 @@ class _SearchPageState extends State<SearchPage> {
         onTap: _onItemTapped,
         userId: widget.userId,
         userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl,
       ),
     );
   }
@@ -120,6 +173,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget eventCard(String title, String date, String time, String imagePath) {
+    final validImagePath = Uri.tryParse(imagePath)?.hasAbsolutePath == true ? imagePath : 'https://via.placeholder.com/150';
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -127,7 +181,7 @@ class _SearchPageState extends State<SearchPage> {
       child: ListTile(
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: Image.asset(imagePath, width: 80, fit: BoxFit.cover),
+          child: Image.network(validImagePath, width: 80, fit: BoxFit.cover),
         ),
         title: Text(
           title,

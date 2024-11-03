@@ -10,8 +10,9 @@ import '../services/api_service.dart';
 class AddEventPage extends StatefulWidget {
   final String userId;
   final String userRole;
+  final String userPhotoUrl; // Add this parameter
 
-  const AddEventPage({super.key, required this.userId, required this.userRole});
+  const AddEventPage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
   @override
   _AddEventPageState createState() => _AddEventPageState();
@@ -146,7 +147,12 @@ class _AddEventPageState extends State<AddEventPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: 'Eventra', userId: widget.userId, userRole: widget.userRole),
+      appBar: CustomAppBar(
+        title: 'Eventra',
+        userId: widget.userId,
+        userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -305,6 +311,7 @@ class _AddEventPageState extends State<AddEventPage> {
         onTap: _onItemTapped,
         userId: widget.userId,
         userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
       ),
     );
   }

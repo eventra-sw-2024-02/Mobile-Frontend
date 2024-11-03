@@ -14,7 +14,9 @@ import 'package:eventra_app/pages/login.dart'; // Import LoginPage
 class HomePage extends StatefulWidget {
   final String userId;
   final String userRole;
-  const HomePage({super.key, required this.userId, required this.userRole});
+  final String userPhotoUrl; // Add this parameter
+
+  const HomePage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -69,22 +71,22 @@ class _HomePageState extends State<HomePage> {
     if (index == 1) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => SearchPage(userId: widget.userId, userRole: widget.userRole)),
+        MaterialPageRoute(builder: (context) => SearchPage(userId: widget.userId, userRole: widget.userRole, userPhotoUrl: widget.userPhotoUrl)),
       );
     } else if (index == 2) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => AddEventPage(userId: widget.userId, userRole: widget.userRole)),
+        MaterialPageRoute(builder: (context) => AddEventPage(userId: widget.userId, userRole: widget.userRole, userPhotoUrl: widget.userPhotoUrl)),
       );
     } else if (index == 3) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => ReservationPage(userId: widget.userId, userRole: widget.userRole)),
+        MaterialPageRoute(builder: (context) => ReservationPage(userId: widget.userId, userRole: widget.userRole, userPhotoUrl: widget.userPhotoUrl)),
       );
     } else if (index == 4) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => TicketsPage(userId: widget.userId, userRole: widget.userRole)),
+        MaterialPageRoute(builder: (context) => TicketsPage(userId: widget.userId, userRole: widget.userRole, userPhotoUrl: widget.userPhotoUrl)),
       );
     } else if (index == 5) {
       _showBottomSheet();
@@ -154,11 +156,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    print('HomePage userPhotoUrl: ${widget.userPhotoUrl}'); // Debug statement
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Eventra',
         userRole: widget.userRole,
         userId: widget.userId,
+        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -183,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                 children: _discoverEvents.map((event) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 10),
-                    child: _buildUpcomingEventCard(context, event['photo'], event['name'], event['id']),
+                    child: _buildUpcomingEventCard(context, event['photo'] ?? 'https://via.placeholder.com/150', event['name'], event['id']),
                   );
                 }).toList(),
               ),
@@ -196,7 +200,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 10),
             Column(
               children: _trendingEvents.map((event) {
-                return _buildPopularEventTile(context, event['name'], event['fechas_eventos'][0], '6:00 pm', event['photo'], event['id']);
+                return _buildPopularEventTile(context, event['name'], event['fechas_eventos'][0], '6:00 pm', event['photo'] ?? 'https://via.placeholder.com/150', event['id']);
               }).toList(),
             ),
           ],
@@ -207,6 +211,7 @@ class _HomePageState extends State<HomePage> {
         onTap: _onItemTapped,
         userId: widget.userId,
         userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
       ),
     );
   }
@@ -240,7 +245,7 @@ class _HomePageState extends State<HomePage> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => EventDetailPage(imagePath: imagePath, title: title, userId: widget.userId, userRole: widget.userRole, eventId: eventId)),
+                          MaterialPageRoute(builder: (context) => EventDetailPage(imagePath: imagePath, title: title, userId: widget.userId, userRole: widget.userRole, userPhotoUrl: widget.userPhotoUrl, eventId: eventId)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -296,7 +301,7 @@ class _HomePageState extends State<HomePage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => EventDetailPage(imagePath: imagePath, title: title, userId: widget.userId, userRole: widget.userRole, eventId: eventId)),
+              MaterialPageRoute(builder: (context) => EventDetailPage(imagePath: imagePath, title: title, userId: widget.userId, userRole: widget.userRole, userPhotoUrl: widget.userPhotoUrl, eventId: eventId)),
             );
           },
           style: ElevatedButton.styleFrom(

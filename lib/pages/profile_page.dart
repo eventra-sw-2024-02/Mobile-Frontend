@@ -1,11 +1,51 @@
 import 'package:flutter/material.dart';
 import 'edit_profile_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final String userId;
   final String userRole;
 
   const ProfilePage({super.key, required this.userId, required this.userRole});
+
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  Map<String, dynamic> _userData = {};
+  bool _isPasswordVisible = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final response = await http.get(Uri.parse('http://10.0.2.2:8080/api/users/${widget.userId}'));
+      if (response.statusCode == 200) {
+        setState(() {
+          _userData = jsonDecode(response.body);
+          _isLoading = false;
+        });
+        print('User data loaded: $_userData');
+      } else {
+        print('Failed to load user data: ${response.statusCode}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +68,9 @@ class ProfilePage extends StatelessWidget {
             end: Alignment.bottomCenter,
           ),
         ),
-        child: SingleChildScrollView(
+        child: _isLoading
+            ? Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,14 +79,16 @@ class ProfilePage extends StatelessWidget {
               Center(
                 child: CircleAvatar(
                   radius: 60,
-                  backgroundImage: AssetImage('assets/user_profile.png'),
+                  backgroundImage: _userData['photo'] != null
+                      ? NetworkImage(_userData['photo'])
+                      : AssetImage('assets/user_profile.png') as ImageProvider,
                   backgroundColor: Colors.white,
                 ),
               ),
               const SizedBox(height: 20),
               Center(
                 child: Text(
-                  'Alexa Doe',
+                  _userData['username'] ?? 'Cargando...',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -56,7 +100,7 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 10),
               Center(
                 child: Text(
-                  'AlexaD@example.com',
+                  _userData['email'] ?? 'Cargando...',
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.black54,
@@ -66,15 +110,19 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 30),
               Divider(color: Colors.black54),
               const SizedBox(height: 10),
-              _buildInfoTile(Icons.phone, '+1234567890', context),
-              _buildInfoTile(Icons.location_on, '123 Main St, City, Country', context),
+              _buildPasswordTile(context),
+              _buildInfoTile(Icons.person, widget.userRole, context),
               const SizedBox(height: 30),
               Center(
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => EditProfilePage(userId: userId, userRole: userRole)),
+                      MaterialPageRoute(builder: (context) => EditProfilePage(
+                        userId: widget.userId,
+                        userRole: widget.userRole,
+                        userPhotoUrl: _userData['photo'], // Pass the userPhotoUrl here
+                      )),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -96,6 +144,38 @@ class ProfilePage extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordTile(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      child: ListTile(
+        leading: Icon(
+          Icons.lock,
+          color: const Color(0xFFFFA726),
+          size: 30,
+        ),
+        title: Text(
+          _isPasswordVisible ? (_userData['password'] ?? 'Cargando...') : '********',
+          style: const TextStyle(fontSize: 18, color: Colors.black87),
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+            color: const Color(0xFFFFA726),
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
         ),
       ),
     );

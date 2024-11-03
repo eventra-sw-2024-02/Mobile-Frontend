@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class FiltersPage extends StatefulWidget {
-  const FiltersPage({super.key});
+  final List<dynamic> events;
+
+  const FiltersPage({super.key, required this.events});
 
   @override
   _FiltersPageState createState() => _FiltersPageState();
@@ -9,6 +11,33 @@ class FiltersPage extends StatefulWidget {
 
 class _FiltersPageState extends State<FiltersPage> {
   double _priceValue = 0;
+  String _selectedLocation = '';
+  String _selectedTag = '';
+  DateTime? _selectedDate;
+  List<dynamic> _filteredEvents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredEvents = widget.events;
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredEvents = widget.events.where((event) {
+        bool matchesPrice = event['tickets'].any((ticket) => ticket['price'] <= _priceValue);
+        bool matchesLocation = _selectedLocation.isEmpty || event['location'] == _selectedLocation;
+        bool matchesTag = _selectedTag.isEmpty || event['tags'].contains(_selectedTag);
+        bool matchesDate = _selectedDate == null || event['fechas_eventos'].any((date) {
+          DateTime eventDate = DateTime.parse(date);
+          return eventDate.year == _selectedDate!.year &&
+              eventDate.month == _selectedDate!.month &&
+              eventDate.day == _selectedDate!.day;
+        });
+        return matchesPrice && matchesLocation && matchesTag && matchesDate;
+      }).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +48,7 @@ class _FiltersPageState extends State<FiltersPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context, _filteredEvents);
           },
         ),
         title: const Text(
@@ -46,8 +75,8 @@ class _FiltersPageState extends State<FiltersPage> {
             _buildSectionTitle('Fecha'),
             _buildDateFilter(),
 
-            _buildSectionTitle('Tiempo del día'),
-            _buildTimeOfDayFilter(),
+            _buildSectionTitle('Tags'),
+            _buildTagFilter(),
 
             _buildSectionTitle('Precio'),
             _buildPriceSlider(),
@@ -75,24 +104,20 @@ class _FiltersPageState extends State<FiltersPage> {
 
   Widget _buildLocationFilter() {
     return _buildCard(
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildFilterButton(
-              text: 'Actual',
-              icon: Icons.location_on,
-              color: Colors.blue.shade600,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildFilterButton(
-              text: 'Buscar ubicación',
-              icon: Icons.search,
-              color: Colors.grey.shade800,
-            ),
-          ),
-        ],
+      child: DropdownButton<String>(
+        value: _selectedLocation.isEmpty ? null : _selectedLocation,
+        hint: const Text('Seleccionar ubicación'),
+        items: widget.events.map<DropdownMenuItem<String>>((event) {
+          return DropdownMenuItem<String>(
+            value: event['location'],
+            child: Text(event['location']),
+          );
+        }).toSet().toList(),
+        onChanged: (value) {
+          setState(() {
+            _selectedLocation = value ?? '';
+          });
+        },
       ),
     );
   }
@@ -101,36 +126,45 @@ class _FiltersPageState extends State<FiltersPage> {
     return _buildCard(
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(child: _buildFilterButton(text: 'Hoy', icon: null, color: Colors.blue.shade600)),
-              const SizedBox(width: 10),
-              Expanded(child: _buildFilterButton(text: 'Mañana', icon: null, color: Colors.blue.shade400)),
-            ],
+          ElevatedButton(
+            onPressed: () async {
+              DateTime? pickedDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2101),
+              );
+              if (pickedDate != null) {
+                setState(() {
+                  _selectedDate = pickedDate;
+                });
+              }
+            },
+            child: const Text('Seleccionar fecha'),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _buildFilterButton(text: 'Esta semana', icon: null, color: Colors.blue.shade400)),
-              const SizedBox(width: 10),
-              Expanded(child: _buildFilterButton(text: 'Elegir fecha', icon: Icons.calendar_today, color: Colors.blue.shade400)),
-            ],
-          ),
+          if (_selectedDate != null)
+            Text('Fecha seleccionada: ${_selectedDate!.toLocal()}'.split(' ')[0]),
         ],
       ),
     );
   }
 
-  Widget _buildTimeOfDayFilter() {
+  Widget _buildTagFilter() {
     return _buildCard(
-      child: Row(
-        children: [
-          Expanded(child: _buildFilterButton(text: 'Mañana', icon: null, color: Colors.blue.shade600)),
-          const SizedBox(width: 10),
-          Expanded(child: _buildFilterButton(text: 'Tarde', icon: null, color: Colors.blue.shade400)),
-          const SizedBox(width: 10),
-          Expanded(child: _buildFilterButton(text: 'Elegir hora', icon: Icons.access_time, color: Colors.blue.shade400)),
-        ],
+      child: DropdownButton<String>(
+        value: _selectedTag.isEmpty ? null : _selectedTag,
+        hint: const Text('Seleccionar tag'),
+        items: widget.events.expand((event) => event['tags']).toSet().map<DropdownMenuItem<String>>((tag) {
+          return DropdownMenuItem<String>(
+            value: tag,
+            child: Text(tag),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            _selectedTag = value ?? '';
+          });
+        },
       ),
     );
   }
@@ -185,6 +219,10 @@ class _FiltersPageState extends State<FiltersPage> {
             onPressed: () {
               setState(() {
                 _priceValue = 0;
+                _selectedLocation = '';
+                _selectedTag = '';
+                _selectedDate = null;
+                _filteredEvents = widget.events;
               });
             },
             style: ElevatedButton.styleFrom(
@@ -199,7 +237,8 @@ class _FiltersPageState extends State<FiltersPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              _applyFilters();
+              Navigator.pop(context, _filteredEvents);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange.shade700,
@@ -212,25 +251,6 @@ class _FiltersPageState extends State<FiltersPage> {
             child: const Text('Aplicar'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterButton({required String text, IconData? icon, required Color color}) {
-    return ElevatedButton.icon(
-      onPressed: () {},
-      icon: icon != null ? Icon(icon, size: 18, color: Colors.white) : const SizedBox.shrink(),
-      label: Text(
-        text,
-        style: const TextStyle(color: Colors.white),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        minimumSize: const Size(100, 45),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
       ),
     );
   }

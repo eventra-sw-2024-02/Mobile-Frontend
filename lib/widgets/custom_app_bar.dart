@@ -8,18 +8,22 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
   final String userId;
   final String userRole;
+  final String userPhotoUrl;
 
   const CustomAppBar({
     Key? key,
     required this.title,
     required this.userId,
     required this.userRole,
+    required this.userPhotoUrl,
     this.actions = const [],
     this.bottom,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    print('CustomAppBar userPhotoUrl: $userPhotoUrl'); // Debug statement
+
     return AppBar(
       backgroundColor: const Color(0xFFFFA726),
       elevation: 0,
@@ -49,8 +53,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 MaterialPageRoute(builder: (context) => ProfilePage(userId: userId, userRole: userRole)),
               );
             },
-            child: const CircleAvatar(
-              backgroundImage: AssetImage('assets/user_profile.png'),
+            child: CircleAvatar(
+              backgroundImage: userPhotoUrl.isNotEmpty
+                  ? NetworkImage(userPhotoUrl)
+                  : AssetImage('assets/user_profile.png') as ImageProvider, // Use a placeholder image if the URL is empty
             ),
           ),
           ...actions,

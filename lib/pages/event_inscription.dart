@@ -218,6 +218,8 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                     backgroundColor: const Color(0xFFFFA726), // Naranja
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shadowColor: Colors.black.withOpacity(0.5),
+                    elevation: 10,
                   ),
                   child: const Text(
                     'Inscribirme',
@@ -251,6 +253,7 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFFFA726), width: 2),
         ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
       ),
       keyboardType: keyboardType,
       onChanged: onChanged,
@@ -277,6 +280,7 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFFFA726), width: 2),
         ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
       ),
       items: items,
       value: value,

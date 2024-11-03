@@ -31,16 +31,25 @@ class _LoginPageState extends State<LoginPage> {
       print('User email: ${user['email']}');
       print('User ID: ${user['id']}');
       print('User Role: ${user['role']}');
+      print('User Photo URL: ${user['photo']}'); // Ensure this is available
 
       if (user['role'] == 'CLIENT') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomePage(userId: user['id'].toString(), userRole: user['role'])),
+          MaterialPageRoute(builder: (context) => HomePage(
+            userId: user['id'].toString(),
+            userRole: user['role'],
+            userPhotoUrl: user['photo'] ?? '', // Pass the userPhotoUrl here
+          )),
         );
       } else if (user['role'] == 'BUSINESS') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MyEventsPage(userId: user['id'].toString(), userRole: user['role'])),
+          MaterialPageRoute(builder: (context) => MyEventsPage(
+            userId: user['id'].toString(),
+            userRole: user['role'],
+            userPhotoUrl: user['photo'] ?? '', // Pass the userPhotoUrl here
+          )),
         );
       }
     } else {
@@ -66,13 +75,26 @@ class _LoginPageState extends State<LoginPage> {
                 Center(
                   child: Text(
                     'Login',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blueGrey[900]),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: Image.asset(
+                    'assets/logo.png', // Add your logo asset here
+                    height: 100,
                   ),
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    prefixIcon: Icon(Icons.email),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
@@ -83,7 +105,13 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -100,7 +128,13 @@ class _LoginPageState extends State<LoginPage> {
                         _login();
                       }
                     },
-                    child: const Text('Login'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    child: const Text('Login', style: TextStyle(fontSize: 18)),
                   ),
                 ),
                 const SizedBox(height: 20),

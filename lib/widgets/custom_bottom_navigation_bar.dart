@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../pages/search_page.dart';
 import '../pages/reservation_page.dart';
 import '../pages/tickets_page.dart';
-import '../pages/profile_page.dart';
 import '../pages/home_page.dart';
 import '../pages/login.dart';
 import '../pages/my_events_page.dart';
@@ -13,6 +12,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
   final Function(int) onTap;
   final String userId;
   final String userRole;
+  final String userPhotoUrl; // Add this parameter
 
   const CustomBottomNavigationBar({
     Key? key,
@@ -20,6 +20,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.onTap,
     required this.userId,
     required this.userRole,
+    required this.userPhotoUrl, // Add this parameter
   }) : super(key: key);
 
   @override
@@ -70,13 +71,13 @@ class CustomBottomNavigationBar extends StatelessWidget {
         case 0:
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => MyEventsPage(userId: userId, userRole: userRole)),
+            MaterialPageRoute(builder: (context) => MyEventsPage(userId: userId, userRole: userRole, userPhotoUrl: userPhotoUrl)),
           );
           break;
         case 1:
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => AddEventPage(userId: userId, userRole: userRole)),
+            MaterialPageRoute(builder: (context) => AddEventPage(userId: userId, userRole: userRole, userPhotoUrl: userPhotoUrl)),
           );
           break;
       }
@@ -85,25 +86,25 @@ class CustomBottomNavigationBar extends StatelessWidget {
         case 0:
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomePage(userId: userId, userRole: userRole)),
+            MaterialPageRoute(builder: (context) => HomePage(userId: userId, userRole: userRole, userPhotoUrl: userPhotoUrl)),
           );
           break;
         case 1:
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => SearchPage(userId: userId, userRole: userRole)),
+            MaterialPageRoute(builder: (context) => SearchPage(userId: userId, userRole: userRole, userPhotoUrl: userPhotoUrl)),
           );
           break;
         case 2:
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => ReservationPage(userId: userId, userRole: userRole)),
+            MaterialPageRoute(builder: (context) => ReservationPage(userId: userId, userRole: userRole, userPhotoUrl: userPhotoUrl)),
           );
           break;
         case 3:
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => TicketsPage(userId: userId, userRole: userRole)),
+            MaterialPageRoute(builder: (context) => TicketsPage(userId: userId, userRole: userRole, userPhotoUrl: userPhotoUrl)),
           );
           break;
       }
@@ -158,6 +159,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 leading: const Icon(Icons.exit_to_app, color: Colors.red),
                 title: const Text('Cerrar sesión'),
                 onTap: () {
+                  // Clear user data
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (context) => const LoginPage()),
                         (Route<dynamic> route) => false,

@@ -7,9 +7,10 @@ class EventDetailPage extends StatefulWidget {
   final String title;
   final String userId;
   final String userRole;
+  final String userPhotoUrl;
   final int eventId; // Add eventId parameter
 
-  const EventDetailPage({super.key, required this.imagePath, required this.title, required this.userId, required this.userRole, required this.eventId});
+  const EventDetailPage({super.key, required this.imagePath, required this.title, required this.userId, required this.userRole, required this.eventId, required this.userPhotoUrl});
 
   @override
   _EventDetailPageState createState() => _EventDetailPageState();
@@ -200,6 +201,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         onTap: _onItemTapped,
         userId: widget.userId,
         userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl,
       ),
     );
   }

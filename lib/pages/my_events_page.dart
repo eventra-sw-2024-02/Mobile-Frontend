@@ -9,7 +9,9 @@ import 'package:eventra_app/widgets/custom_bottom_navigation_bar.dart';
 class MyEventsPage extends StatefulWidget {
   final String userId;
   final String userRole;
-  const MyEventsPage({super.key, required this.userId, required this.userRole});
+  final String userPhotoUrl; // Add this parameter
+
+  const MyEventsPage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
   @override
   _MyEventsPageState createState() => _MyEventsPageState();
@@ -54,6 +56,7 @@ class _MyEventsPageState extends State<MyEventsPage> {
         title: 'Mis Actividades',
         userRole: widget.userRole,
         userId: widget.userId,
+        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -148,6 +151,7 @@ class _MyEventsPageState extends State<MyEventsPage> {
         },
         userId: widget.userId,
         userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl,
       ),
     );
   }

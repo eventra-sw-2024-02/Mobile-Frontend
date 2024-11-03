@@ -6,7 +6,9 @@ import 'tickets_detail_page.dart';
 class TicketsPage extends StatefulWidget {
   final String userId;
   final String userRole;
-  const TicketsPage({super.key, required this.userId, required this.userRole});
+  final String userPhotoUrl; // Add this parameter
+
+  const TicketsPage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
   @override
   _TicketsPageState createState() => _TicketsPageState();
@@ -30,6 +32,7 @@ class _TicketsPageState extends State<TicketsPage> {
           title: 'Eventra',
           userRole: widget.userRole,
           userId: widget.userId,
+          userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
           bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.grey,
@@ -123,6 +126,7 @@ class _TicketsPageState extends State<TicketsPage> {
           onTap: _onItemTapped,
           userId: widget.userId,
           userRole: widget.userRole,
+          userPhotoUrl: widget.userPhotoUrl,
         ),
       ),
     );

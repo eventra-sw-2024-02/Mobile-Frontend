@@ -5,26 +5,28 @@ import '../widgets/custom_bottom_navigation_bar.dart';
 class ReservationPage extends StatefulWidget {
   final String userId;
   final String userRole;
-  const ReservationPage({super.key, required this.userId, required this.userRole});
+  final String userPhotoUrl; // Add this parameter
+
+  const ReservationPage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
   @override
   _ReservationPageState createState() => _ReservationPageState();
 }
 
 class _ReservationPageState extends State<ReservationPage> {
-  int _selectedIndex = 4; // Asegúrate de que el índice corresponde a la pestaña actual
+  int _selectedIndex = 4; // Ensure the index corresponds to the current tab
 
-  // Lista de reservaciones
+  // List of reservations
   List<Map<String, String>> reservations = [
     {
-      'title': 'Concierto',
-      'date': '10 Noviembre',
+      'title': 'Concert',
+      'date': '10 November',
       'time': '6:00 pm',
       'imagePath': 'assets/concert.png',
     },
     {
-      'title': 'Obra de teatro',
-      'date': '15 Octubre',
+      'title': 'Theater Play',
+      'date': '15 October',
       'time': '4:00 pm',
       'imagePath': 'assets/theater.png',
     },
@@ -36,30 +38,30 @@ class _ReservationPageState extends State<ReservationPage> {
     });
   }
 
-  // Método para eliminar una reservación
+  // Method to delete a reservation
   void _deleteReservation(int index) {
     setState(() {
       reservations.removeAt(index);
     });
   }
 
-  // Método para mostrar diálogo de confirmación
+  // Method to show delete confirmation dialog
   void _showDeleteConfirmationDialog(int index) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirmar Eliminación'),
-          content: const Text('¿Estás seguro de que deseas cancelar esta reservación?'),
+          title: const Text('Confirm Deletion'),
+          content: const Text('Are you sure you want to cancel this reservation?'),
           actions: [
             TextButton(
-              child: const Text('Cancelar'),
+              child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('Eliminar'),
+              child: const Text('Delete'),
               onPressed: () {
                 _deleteReservation(index);
                 Navigator.of(context).pop();
@@ -74,7 +76,12 @@ class _ReservationPageState extends State<ReservationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: 'Mis Reservaciones', userId: widget.userId,userRole: widget.userRole),
+      appBar: CustomAppBar(
+        title: 'My Reservations',
+        userId: widget.userId,
+        userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
+      ),
       backgroundColor: const Color(0xFFF5F5F5),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0),
@@ -95,6 +102,7 @@ class _ReservationPageState extends State<ReservationPage> {
         onTap: _onItemTapped,
         userId: widget.userId,
         userRole: widget.userRole,
+        userPhotoUrl: widget.userPhotoUrl,
       ),
     );
   }
@@ -160,12 +168,12 @@ class _ReservationPageState extends State<ReservationPage> {
             ),
             PopupMenuButton<String>(
               onSelected: (value) {
-                if (value == 'Cancelar') {
-                  _showDeleteConfirmationDialog(index); // Muestra diálogo de confirmación
+                if (value == 'Cancel') {
+                  _showDeleteConfirmationDialog(index); // Show confirmation dialog
                 }
               },
               itemBuilder: (BuildContext context) {
-                return {'Cancelar'}.map((String choice) {
+                return {'Cancel'}.map((String choice) {
                   return PopupMenuItem<String>(
                     value: choice,
                     child: Text(choice),
