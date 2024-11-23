@@ -10,7 +10,7 @@ import '../services/api_service.dart';
 class AddEventPage extends StatefulWidget {
   final String userId;
   final String userRole;
-  final String userPhotoUrl; // Add this parameter
+  final String userPhotoUrl;
 
   const AddEventPage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
@@ -29,15 +29,16 @@ class _AddEventPageState extends State<AddEventPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   int _selectedIndex = 2;
-  List<String> _categories = ["Ciencia", "Feria", "Exposición", "Educación"]; // Example categories
+  List<String> _categories = ["Ciencia", "Feria", "Exposición", "Educación"];
   final ApiService _apiService = ApiService();
+
+  List<Map<String, dynamic>> _tickets = [];
+  List<String> _colors = ["Red", "Green", "Blue", "Yellow", "Purple"];
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
-
-    // Navigation to other pages if necessary
   }
 
   void _pickStartDate() async {
@@ -104,6 +105,23 @@ class _AddEventPageState extends State<AddEventPage> {
     }
   }
 
+  void _addTicket() {
+    setState(() {
+      _tickets.add({
+        "name": "",
+        "color": "",
+        "quantity": 0,
+        "price": 0.0,
+      });
+    });
+  }
+
+  void _removeTicket(int index) {
+    setState(() {
+      _tickets.removeAt(index);
+    });
+  }
+
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       if (_startDate == null || _endDate == null) {
@@ -123,10 +141,7 @@ class _AddEventPageState extends State<AddEventPage> {
           dateFormat.format(_startDate!),
           dateFormat.format(_endDate!)
         ],
-        "tickets": [
-          { "name": "General Admission", "color": "Green", "quantity": 200, "price": 15.00 },
-          { "name": "VIP Lab Access", "color": "Red", "quantity": 30, "price": 60.00 }
-        ],
+        "tickets": _tickets,
         "businessId": int.parse(widget.userId)
       };
 
@@ -151,7 +166,7 @@ class _AddEventPageState extends State<AddEventPage> {
         title: 'Eventra',
         userId: widget.userId,
         userRole: widget.userRole,
-        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
+        userPhotoUrl: widget.userPhotoUrl,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -298,6 +313,80 @@ class _AddEventPageState extends State<AddEventPage> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
+                  onPressed: _addTicket,
+                  child: Text('Add Ticket'),
+                ),
+                const SizedBox(height: 20),
+                ..._tickets.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  Map<String, dynamic> ticket = entry.value;
+                  return Column(
+                    children: [
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Ticket Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            ticket['name'] = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: 'Ticket Color',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _colors.map((color) {
+                          return DropdownMenuItem<String>(
+                            value: color,
+                            child: Text(color),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            ticket['color'] = value!;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Ticket Quantity',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          setState(() {
+                            ticket['quantity'] = int.parse(value);
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Ticket Price',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          setState(() {
+                            ticket['price'] = double.parse(value);
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: () => _removeTicket(index),
+                        child: Text('Remove Ticket'),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  );
+                }).toList(),
+                ElevatedButton(
                   onPressed: _submitForm,
                   child: Text('Create Event'),
                 ),
@@ -311,7 +400,7 @@ class _AddEventPageState extends State<AddEventPage> {
         onTap: _onItemTapped,
         userId: widget.userId,
         userRole: widget.userRole,
-        userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
+        userPhotoUrl: widget.userPhotoUrl,
       ),
     );
   }

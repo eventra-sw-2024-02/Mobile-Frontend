@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class PaymentPage extends StatefulWidget {
   final double totalCost;
-  final String ticketType;
-  final int ticketQuantity;
-  final String additionalService;
+  final Map<String, int> selectedTickets;
+  final Map<String, double> ticketPrices;
+  final int ticketId;
+  final int clientId;
 
   const PaymentPage({
     super.key,
     required this.totalCost,
-    required this.ticketType,
-    required this.ticketQuantity,
-    required this.additionalService,
+    required this.selectedTickets,
+    required this.ticketPrices,
+    required this.ticketId,
+    required this.clientId,
   });
 
   @override
@@ -20,7 +24,74 @@ class PaymentPage extends StatefulWidget {
 
 class _PaymentPageState extends State<PaymentPage> {
   final _paymentFormKey = GlobalKey<FormState>();
-  String? _selectedPaymentMethod;
+  String? _selectedPaymentMethod = "PAGO_EFECTIVO";
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  Future<void> _processPayment() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    // Debugging: Print ticketId and clientId
+    print('ticketId: ${widget.ticketId}, clientId: ${widget.clientId}');
+
+    if (widget.ticketId == 0 || widget.clientId == 0) {
+      setState(() {
+        _errorMessage = 'Invalid ticket or client ID';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://gustavo-tenant-eventrabackend-viae0c-b1b3fd-35-239-187-59.traefik.me/api/tickets/buy'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'idTicket': widget.ticketId,
+          'idClient': widget.clientId,
+          'methodPayment': _selectedPaymentMethod,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Pago completado'),
+              content: const Text('Gracias por tu inscripción, el pago se ha completado con éxito.'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Aceptar'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to process payment: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to process payment: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +114,11 @@ class _PaymentPageState extends State<PaymentPage> {
         ),
         centerTitle: true,
       ),
-      body: Padding(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(child: Text(_errorMessage!))
+          : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _paymentFormKey,
@@ -58,52 +133,19 @@ class _PaymentPageState extends State<PaymentPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildSummaryRow(
-                'Entrada',
-                '${widget.ticketQuantity}x ${widget.ticketType}',
-                '20',
-              ),
+              ...widget.selectedTickets.entries.map((entry) {
+                double pricePerTicket = widget.ticketPrices[entry.key] ?? 0.0;
+                double totalPrice = entry.value * pricePerTicket;
+                return _buildSummaryRow(
+                  entry.key,
+                  '${entry.value}x',
+                  totalPrice.toStringAsFixed(2),
+                );
+              }).toList(),
               const SizedBox(height: 10),
-              _buildSummaryRow(
-                'Servicios adicionales',
-                widget.additionalService,
-                '50',
-              ),
-              const SizedBox(height: 10),
-              _buildTotalRow(widget.totalCost.toString()),
+              _buildTotalRow(widget.totalCost.toStringAsFixed(2)),
               const SizedBox(height: 30),
               _buildPaymentMethodDropdown(),
-              const SizedBox(height: 20),
-              if (_selectedPaymentMethod == 'Visa') ...[
-                _buildTextField(
-                  'Nombre del titular de la tarjeta',
-                  Icons.person,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  'Número de tarjeta',
-                  Icons.credit_card,
-                  isNumber: true,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  'CVV',
-                  Icons.security,
-                  isNumber: true,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  'Fecha de expiración (MM/AA)',
-                  Icons.date_range,
-                  isNumber: true,
-                ),
-              ] else if (_selectedPaymentMethod == 'PayPal') ...[
-                _buildTextField(
-                  'Correo electrónico de PayPal',
-                  Icons.email,
-                  isEmail: true,
-                ),
-              ],
               const SizedBox(height: 30),
               _buildButtonRow(context),
             ],
@@ -113,13 +155,13 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, String price) {
+  Widget _buildSummaryRow(String label, String quantity, String price) {
     return Row(
       children: [
         Expanded(
           flex: 3,
           child: TextFormField(
-            initialValue: value,
+            initialValue: '$quantity $label',
             readOnly: true,
             decoration: InputDecoration(
               labelText: label,
@@ -183,7 +225,7 @@ class _PaymentPageState extends State<PaymentPage> {
         filled: true,
         fillColor: Colors.white,
       ),
-      items: ['Visa', 'PayPal', 'Yape', 'Plin']
+      items: ['PAGO_EFECTIVO']
           .map((method) => DropdownMenuItem<String>(
         value: method,
         child: Text(method),
@@ -197,41 +239,6 @@ class _PaymentPageState extends State<PaymentPage> {
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Por favor seleccione un método de pago';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildTextField(
-      String label,
-      IconData icon, {
-        bool isNumber = false,
-        bool isEmail = false,
-      }) {
-    return TextFormField(
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.black87),
-        prefixIcon: Icon(icon, color: const Color(0xFFFFA726)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 16,
-        ),
-      ),
-      keyboardType: isNumber
-          ? TextInputType.number
-          : isEmail
-          ? TextInputType.emailAddress
-          : TextInputType.text,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Por favor ingrese $label';
         }
         return null;
       },
@@ -261,25 +268,7 @@ class _PaymentPageState extends State<PaymentPage> {
         ElevatedButton(
           onPressed: () {
             if (_paymentFormKey.currentState!.validate()) {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Pago completado'),
-                    content: const Text(
-                        'Gracias por tu inscripción, el pago se ha completado con éxito.'),
-                    actions: <Widget>[
-                      TextButton(
-                        child: const Text('Aceptar'),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
+              _processPayment();
             }
           },
           style: ElevatedButton.styleFrom(

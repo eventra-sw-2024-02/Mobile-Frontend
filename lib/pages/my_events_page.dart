@@ -73,6 +73,7 @@ class _MyEventsPageState extends State<MyEventsPage> {
         itemBuilder: (context, index) {
           final activity = _userActivities[index];
           return Card(
+            color: Colors.grey[200], // Set the background color of the card
             elevation: 8,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
@@ -133,6 +134,38 @@ class _MyEventsPageState extends State<MyEventsPage> {
                           'Categoría: ${activity['tags'] != null ? activity['tags'].join(', ') : 'No Tags'}',
                           style: const TextStyle(fontSize: 16, color: Colors.black54),
                         ),
+                        const SizedBox(height: 8),
+                        if (activity['tickets'] != null && activity['tickets'].isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Tickets:',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              ...activity['tickets'].map<Widget>((ticket) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        color: Color(int.parse(ticket['color'].substring(1, 7), radix: 16) + 0xFF000000),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Nombre: ${ticket['name']}, Cantidad: ${ticket['quantity']}, Precio: \$${ticket['price']}',
+                                          style: const TextStyle(fontSize: 16, color: Colors.black54),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          ),
                       ],
                     ),
                   ),

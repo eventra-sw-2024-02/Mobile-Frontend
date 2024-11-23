@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'payment_page.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'payment_page.dart';
 
 class EventRegistrationPage extends StatefulWidget {
   final String eventName;
@@ -14,77 +15,93 @@ class EventRegistrationPage extends StatefulWidget {
 
 class _EventRegistrationPageState extends State<EventRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
-  String? _selectedTicketType;
-  int? _selectedTicketQuantity = 1;
-  String? _phoneNumber;
-  String? _dni;
-  String? _selectedAdditionalService;
-  double _ticketPrice = 0.0;
   double _totalCost = 0.0;
-  double _additionalServiceCost = 0.0;
+  String? _eventDate;
+  String? _eventPhoto;
+  int? _clientId;
+  int? _ticketId;
 
   Map<String, double> _ticketPrices = {};
-  final Map<String, double> _additionalServicePrices = {
-    'Ninguno': 0.0,
-    'Comida y bebida': 20.0,
-    'Estacionamiento': 10.0,
-    'Transporte': 15.0,
-  };
+  Map<String, int> _ticketQuantities = {};
 
   @override
   void initState() {
     super.initState();
     _fetchEventDetails();
+    _fetchClientId();
   }
 
-  void _fetchEventDetails() {
-    // Simulate fetching event details from a server
-    final eventData = jsonDecode('''
-    [
-      {
-        "id": 1,
-        "name": "Concierto Marc Anthony",
-        "description": "Concierto de tus artista favorito",
-        "photo": "https://portal.andina.pe/EDPfotografia3/Thumbnail/2023/09/22/000997012W.jpg",
-        "location": "La Molina",
-        "tags": ["Ciencia"],
-        "fechas_eventos": ["2024-11-12T02:41:00", "2024-11-29T02:41:00"],
-        "tickets": [
-          {"name": "General Admission", "color": "Green", "quantity": 200, "price": 15},
-          {"name": "VIP Lab Access", "color": "Red", "quantity": 30, "price": 60}
-        ],
-        "businessId": 1
-      },
-      {
-        "id": 2,
-        "name": "Science Fair",
-        "description": "Explore science exhibits and experiments.",
-        "photo": "https://www.coldelvalle.edu.mx/wp-content/uploads/2023/09/10p.Que_es_una_feria_de_ciencias-min.jpg",
-        "location": "Science Center",
-        "tags": ["Ciencia"],
-        "fechas_eventos": ["2024-11-15T14:29:00", "2024-11-27T14:29:00"],
-        "tickets": [
-          {"name": "General Admission", "color": "Green", "quantity": 200, "price": 15},
-          {"name": "VIP Lab Access", "color": "Red", "quantity": 30, "price": 60}
-        ],
-        "businessId": 1
-      }
-    ]
-    ''');
+  Future<void> _fetchEventDetails() async {
+    try {
+      final response = await http.get(Uri.parse('http://10.0.2.2:8080/api/activities/${widget.eventId}'));
 
-    final event = eventData.firstWhere((event) => event['id'] == widget.eventId);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _eventDate = data['fechas_eventos'][0];
+          _eventPhoto = data['photo'];
+          _ticketPrices = {
+            for (var ticket in data['tickets'])
+              ticket['name']: ticket['price'].toDouble()
+          };
+        });
+      } else {
+        throw Exception('Failed to load event details');
+      }
+    } catch (e) {
+      print('Error fetching event details: $e');
+    }
+  }
+
+  Future<void> _fetchTicketId() async {
+    try {
+      final response = await http.get(Uri.parse('http://gustavo-tenant-eventrabackend-viae0c-b1b3fd-35-239-187-59.traefik.me/api/tickets/event/${widget.eventId}'));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _ticketId = data[0]['idTicket'];
+        });
+      } else {
+        throw Exception('Failed to load ticket ID');
+      }
+    } catch (e) {
+      print('Error fetching ticket ID: $e');
+    }
+  }
+
+  Future<void> _fetchClientId() async {
+    final clientId = await getLoggedInUserId();
     setState(() {
-      _ticketPrices = {
-        for (var ticket in event['tickets']) ticket['name']: ticket['price'].toDouble()
-      };
+      _clientId = clientId;
     });
+  }
+
+  Future<int> getLoggedInUserId() async {
+    return 1; // Replace with actual client ID
   }
 
   void _updateTotalCost() {
     setState(() {
-      _ticketPrice = _ticketPrices[_selectedTicketType] ?? 0.0;
-      _additionalServiceCost = _additionalServicePrices[_selectedAdditionalService] ?? 0.0;
-      _totalCost = (_ticketPrice * (_selectedTicketQuantity ?? 1)) + _additionalServiceCost;
+      _totalCost = _ticketQuantities.entries.fold(0.0, (sum, entry) {
+        return sum + (entry.value * (_ticketPrices[entry.key] ?? 0.0));
+      });
+    });
+  }
+
+  void _incrementTicketQuantity(String ticketType) {
+    setState(() {
+      _ticketQuantities[ticketType] = (_ticketQuantities[ticketType] ?? 0) + 1;
+      _updateTotalCost();
+    });
+  }
+
+  void _decrementTicketQuantity(String ticketType) {
+    setState(() {
+      if ((_ticketQuantities[ticketType] ?? 0) > 0) {
+        _ticketQuantities[ticketType] = (_ticketQuantities[ticketType] ?? 0) - 1;
+        _updateTotalCost();
+      }
     });
   }
 
@@ -93,10 +110,7 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text(
-          'Inscripción - ${widget.eventName}',
-          style: const TextStyle(color: Colors.black),
-        ),
+        title: Text(widget.eventName),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -108,71 +122,58 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _buildDropdownField(
-                label: 'Tipo de entrada',
-                items: _ticketPrices.keys.map((type) => DropdownMenuItem<String>(
-                  value: type,
-                  child: Text(type),
-                )).toList(),
-                value: _selectedTicketType,
-                onChanged: (value) {
-                  _selectedTicketType = value;
-                  _updateTotalCost();
-                },
-              ),
+              if (_eventPhoto != null)
+                Image.network(
+                  _eventPhoto!,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
+              if (_eventDate != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Text(
+                    'Fecha del evento: $_eventDate',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
               const SizedBox(height: 20),
-              _buildDropdownField(
-                label: 'Cantidad de entradas',
-                items: [1, 2, 3, 4, 5].map((quantity) => DropdownMenuItem<int>(
-                  value: quantity,
-                  child: Text(quantity.toString()),
-                )).toList(),
-                value: _selectedTicketQuantity,
-                onChanged: (value) {
-                  _selectedTicketQuantity = value;
-                  _updateTotalCost();
-                },
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                label: 'Número de teléfono',
-                onChanged: (value) {
-                  _phoneNumber = value;
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingrese su número de teléfono';
-                  }
-                  return null;
-                },
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                label: 'DNI',
-                onChanged: (value) {
-                  _dni = value;
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingrese su DNI';
-                  }
-                  return null;
-                },
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 20),
-              _buildDropdownField(
-                label: 'Servicios adicionales',
-                items: _additionalServicePrices.keys.map((service) => DropdownMenuItem<String>(
-                  value: service,
-                  child: Text(service),
-                )).toList(),
-                value: _selectedAdditionalService,
-                onChanged: (value) {
-                  _selectedAdditionalService = value;
-                  _updateTotalCost();
-                },
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: _ticketPrices.keys.map((ticketType) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(ticketType, style: const TextStyle(fontSize: 16)),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove),
+                              onPressed: () => _decrementTicketQuantity(ticketType),
+                            ),
+                            Text('${_ticketQuantities[ticketType] ?? 0}', style: const TextStyle(fontSize: 16)),
+                            IconButton(
+                              icon: const Icon(Icons.add),
+                              onPressed: () => _incrementTicketQuantity(ticketType),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
               const SizedBox(height: 30),
               Text(
@@ -182,41 +183,26 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
               const SizedBox(height: 30),
               Center(
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text('Inscripción completada'),
-                            content: const Text('Te has inscrito en el evento. Para finalizar tu registro, realiza el pago.'),
-                            actions: <Widget>[
-                              TextButton(
-                                child: const Text('Pagar'),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => PaymentPage(
-                                        totalCost: _totalCost,
-                                        ticketType: _selectedTicketType!,
-                                        ticketQuantity: _selectedTicketQuantity!,
-                                        additionalService: _selectedAdditionalService ?? 'Ninguno',
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          );
-                        },
+                      await _fetchTicketId();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PaymentPage(
+                            totalCost: _totalCost,
+                            selectedTickets: _ticketQuantities,
+                            ticketPrices: _ticketPrices,
+                            ticketId: _ticketId!,
+                            clientId: _clientId!,
+                          ),
+                        ),
                       );
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                    backgroundColor: const Color(0xFFFFA726), // Naranja
+                    backgroundColor: const Color(0xFFFFA726),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     shadowColor: Colors.black.withOpacity(0.5),
                     elevation: 10,
@@ -231,66 +217,6 @@ class _EventRegistrationPageState extends State<EventRegistrationPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required void Function(String) onChanged,
-    required String? Function(String?)? validator,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextFormField(
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.grey, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFFFA726), width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-      ),
-      keyboardType: keyboardType,
-      onChanged: onChanged,
-      validator: validator,
-    );
-  }
-
-  Widget _buildDropdownField<T>({
-    required String label,
-    required List<DropdownMenuItem<T>> items,
-    required T? value,
-    required void Function(T?) onChanged,
-  }) {
-    return DropdownButtonFormField<T>(
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.grey, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFFFA726), width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-      ),
-      items: items,
-      value: value,
-      onChanged: onChanged,
-      validator: (value) {
-        if (value == null) {
-          return 'Por favor seleccione una opción';
-        }
-        return null;
-      },
     );
   }
 }

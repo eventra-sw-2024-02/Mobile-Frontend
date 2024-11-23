@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../widgets/custom_bottom_navigation_bar.dart';
 import '../widgets/custom_app_bar.dart';
 import 'tickets_detail_page.dart';
@@ -6,7 +8,7 @@ import 'tickets_detail_page.dart';
 class TicketsPage extends StatefulWidget {
   final String userId;
   final String userRole;
-  final String userPhotoUrl; // Add this parameter
+  final String userPhotoUrl;
 
   const TicketsPage({super.key, required this.userId, required this.userRole, required this.userPhotoUrl});
 
@@ -16,11 +18,39 @@ class TicketsPage extends StatefulWidget {
 
 class _TicketsPageState extends State<TicketsPage> {
   int _selectedIndex = 3;
+  List<dynamic> _purchasedTickets = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPurchasedTickets();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  Future<void> _fetchPurchasedTickets() async {
+    final url = 'http://10.0.2.2:8080/api/tickets/user/${widget.userId}';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() {
+          _purchasedTickets = json.decode(response.body);
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load tickets');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error fetching tickets: $e');
+    }
   }
 
   @override
@@ -32,7 +62,7 @@ class _TicketsPageState extends State<TicketsPage> {
           title: 'Eventra',
           userRole: widget.userRole,
           userId: widget.userId,
-          userPhotoUrl: widget.userPhotoUrl, // Pass the userPhotoUrl here
+          userPhotoUrl: widget.userPhotoUrl,
           bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.grey,
@@ -43,81 +73,41 @@ class _TicketsPageState extends State<TicketsPage> {
             ],
           ),
         ),
-        body: TabBarView(
+        body: _isLoading
+            ? Center(child: CircularProgressIndicator())
+            : TabBarView(
           children: [
-            ListView(
+            ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              children: [
-                _buildTicketCard(
+              itemCount: _purchasedTickets.length,
+              itemBuilder: (context, index) {
+                final ticket = _purchasedTickets[index];
+                return _buildTicketCard(
                   context,
-                  image: 'assets/jazz_festival.png',
-                  title: 'Jazz Festival',
-                  date: '25 Noviembre',
-                  time: '7:00 pm',
-                  description: 'Un festival de jazz con artistas internacionales.',
-                ),
-                _buildTicketCard(
-                  context,
-                  image: 'assets/music_festival.png',
-                  title: 'Music Festival',
-                  date: '10 Noviembre',
-                  time: '6:00 pm',
-                  description: 'Un festival de música y arte vibrante que celebra la cultura.',
-                ),
-                _buildTicketCard(
-                  context,
-                  image: 'assets/food_festival.png',
-                  title: 'Festival de comida',
-                  date: '5 Octubre',
-                  time: '12:00 pm',
-                  description: 'Un festival para degustar comidas de diferentes culturas.',
-                ),
-                _buildTicketCard(
-                  context,
-                  image: 'assets/ceramics_workshop.png',
-                  title: 'Taller de cerámica',
-                  date: '10 Octubre',
-                  time: '6:00 pm',
-                  description: 'Un taller donde puedes aprender a hacer piezas de cerámica.',
-                ),
-              ],
+                  ticketId: ticket['id'],
+                  image: ticket['photo'],
+                  title: ticket['title'],
+                  date: ticket['dateTime'],
+                  time: ticket['dateTime'],
+                  description: ticket['description'],
+                );
+              },
             ),
-            ListView(
+            ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              children: [
-                _buildTicketCard(
+              itemCount: _purchasedTickets.length,
+              itemBuilder: (context, index) {
+                final ticket = _purchasedTickets[index];
+                return _buildTicketCard(
                   context,
-                  image: 'assets/exhibition.png',
-                  title: 'Exposición de Arte',
-                  date: '20 Septiembre',
-                  time: '5:00 pm',
-                  description: 'Una exposición que muestra obras de artistas locales.',
-                ),
-                _buildTicketCard(
-                  context,
-                  image: 'assets/theater.png',
-                  title: 'Obra de Teatro',
-                  date: '15 Septiembre',
-                  time: '8:00 pm',
-                  description: 'Una comedia dramática que no te puedes perder.',
-                ),
-                _buildTicketCard(
-                  context,
-                  image: 'assets/concert.png',
-                  title: 'Concierto de Rock',
-                  date: '10 Agosto',
-                  time: '9:00 pm',
-                  description: 'Una noche de rock en vivo con bandas locales.',
-                ),
-                _buildTicketCard(
-                  context,
-                  image: 'assets/food_festival.png',
-                  title: 'Festival de Comida',
-                  date: '5 Julio',
-                  time: '3:00 pm',
-                  description: 'Muestra de diferentes tipos de comida.',
-                ),
-              ],
+                  ticketId: ticket['id'],
+                  image: ticket['photo'],
+                  title: ticket['title'],
+                  date: ticket['dateTime'],
+                  time: ticket['dateTime'],
+                  description: ticket['description'],
+                );
+              },
             ),
           ],
         ),
@@ -134,6 +124,7 @@ class _TicketsPageState extends State<TicketsPage> {
 
   Widget _buildTicketCard(
       BuildContext context, {
+        required int ticketId,
         required String image,
         required String title,
         required String date,
@@ -148,13 +139,17 @@ class _TicketsPageState extends State<TicketsPage> {
       shadowColor: Colors.grey.shade200,
       child: ListTile(
         contentPadding: const EdgeInsets.all(12.0),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8.0),
-          child: Image.asset(
-            image,
-            width: 70,
-            height: 70,
-            fit: BoxFit.cover,
+        leading: SizedBox(
+          width: 70,
+          height: 70,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8.0),
+            child: Image.network(
+              image,
+              width: 70,
+              height: 70,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         title: Text(
@@ -192,6 +187,7 @@ class _TicketsPageState extends State<TicketsPage> {
                   image: image,
                   description: description,
                   userId: widget.userId,
+                  ticketId: ticketId.toString(), // Convertir ticketId a String
                 ),
               ),
             );

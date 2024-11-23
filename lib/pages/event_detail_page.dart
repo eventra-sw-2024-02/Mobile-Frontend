@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../widgets/custom_bottom_navigation_bar.dart';
 import 'event_inscription.dart';
 
@@ -18,11 +20,38 @@ class EventDetailPage extends StatefulWidget {
 
 class _EventDetailPageState extends State<EventDetailPage> {
   int _selectedIndex = 0;
+  List<Map<String, dynamic>> _tickets = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEventDetails();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  Future<void> _fetchEventDetails() async {
+    final url = Uri.parse('http://gustavo-tenant-eventrabackend-viae0c-b1b3fd-35-239-187-59.traefik.me/api/activities/${widget.eventId}');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> eventDetails = jsonDecode(response.body);
+      setState(() {
+        _tickets = (eventDetails['tickets'] as List<dynamic>).map((ticket) => ticket as Map<String, dynamic>).toList();
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+      // Handle error
+      print('Failed to load event details');
+    }
   }
 
   @override
@@ -37,7 +66,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
           const SizedBox(width: 16), // Espacio entre el título y el avatar
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,6 +173,41 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 color: Colors.grey[700],
               ),
             ),
+            const SizedBox(height: 30),
+            if (_tickets.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tickets:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  ..._tickets.map<Widget>((ticket) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ticket['name'],
+                            style: const TextStyle(fontSize: 16, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Precio: \$${ticket['price']}',
+                            style: const TextStyle(fontSize: 16, color: Colors.black54),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cantidad: ${ticket['quantity']}',
+                            style: const TextStyle(fontSize: 16, color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
             const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

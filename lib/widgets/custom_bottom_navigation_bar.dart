@@ -6,7 +6,7 @@ import '../pages/tickets_page.dart';
 import '../pages/home_page.dart';
 import '../pages/login.dart';
 import '../pages/my_events_page.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
@@ -158,8 +158,12 @@ class CustomBottomNavigationBar extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.exit_to_app, color: Colors.red),
                 title: const Text('Cerrar sesión'),
-                onTap: () {
-                  // Clear user data
+                onTap: () async {
+                  // Clear user data (example using SharedPreferences)
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+
+                  // Navigate to the login page and remove all previous routes
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (context) => const LoginPage()),
                         (Route<dynamic> route) => false,

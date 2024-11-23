@@ -42,14 +42,8 @@ class _HomePageState extends State<HomePage> {
       final List<dynamic> activities = jsonDecode(response.body);
       print('Fetched activities: $activities'); // Debug statement
       setState(() {
-        _trendingEvents = activities
-            .where((activity) => [1, 2, 11, 14].contains(activity['id']))
-            .map((activity) => activity as Map<String, dynamic>)
-            .toList();
-        _discoverEvents = activities
-            .where((activity) => [12, 13].contains(activity['id']))
-            .map((activity) => activity as Map<String, dynamic>)
-            .toList();
+        _trendingEvents = activities.map((activity) => activity as Map<String, dynamic>).toList();
+        _discoverEvents = activities.map((activity) => activity as Map<String, dynamic>).toList();
         _isLoading = false;
       });
       print('Trending events: $_trendingEvents'); // Debug statement
@@ -270,9 +264,12 @@ class _HomePageState extends State<HomePage> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.network(imagePath, width: 80, fit: BoxFit.cover),
+        leading: SizedBox(
+          width: 80,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(imagePath, fit: BoxFit.cover),
+          ),
         ),
         title: Text(
           title,

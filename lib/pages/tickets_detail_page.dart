@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class TicketDetailPage extends StatelessWidget {
+class TicketDetailPage extends StatefulWidget {
   final String title;
   final String date;
   final String time;
   final String image;
   final String description;
   final String userId;
+  final String ticketId;
 
   const TicketDetailPage({
     super.key,
@@ -16,7 +19,42 @@ class TicketDetailPage extends StatelessWidget {
     required this.image,
     required this.description,
     required this.userId,
+    required this.ticketId,
   });
+
+  @override
+  _TicketDetailPageState createState() => _TicketDetailPageState();
+}
+
+class _TicketDetailPageState extends State<TicketDetailPage> {
+  Map<String, dynamic>? eventDetails;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEventDetails();
+  }
+
+  Future<void> _fetchEventDetails() async {
+    final url = 'http://10.0.2.2:8080/api/tickets/event/${widget.ticketId}';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() {
+          eventDetails = json.decode(response.body);
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load event details');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error fetching event details: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +82,9 @@ class TicketDetailPage extends StatelessWidget {
           ),
         ],
       ),
-      body: Padding(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
@@ -52,8 +92,8 @@ class TicketDetailPage extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12.0),
-                child: Image.asset(
-                  image,
+                child: Image.network(
+                  widget.image,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 350,
@@ -75,7 +115,7 @@ class TicketDetailPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              title,
+                              widget.title,
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -83,13 +123,13 @@ class TicketDetailPage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            _buildInfoRow(Icons.calendar_today, date),
+                            _buildInfoRow(Icons.calendar_today, widget.date),
                             const SizedBox(height: 8),
-                            _buildInfoRow(Icons.access_time, time),
+                            _buildInfoRow(Icons.access_time, widget.time),
                             const SizedBox(height: 8),
                             _buildInfoRow(
                               Icons.location_on,
-                              'Parque Central, Lima',
+                              eventDetails?['location'] ?? 'Unknown location',
                             ),
                             const SizedBox(height: 16),
                             const Text(
@@ -102,7 +142,7 @@ class TicketDetailPage extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              description,
+                              widget.description,
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -142,8 +182,7 @@ class TicketDetailPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFA726),
                     foregroundColor: Colors.white,
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
